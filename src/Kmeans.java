@@ -5,8 +5,10 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Scanner;
 import java.util.Set;
@@ -25,6 +27,8 @@ public class Kmeans {
 	private static int minTokenSize;
 	private static int maxTokenSize;
 	private static Set<String> unique = new HashSet<String>();
+	private static List<String> cleanTokens = new ArrayList<>(); 
+	private static Map<String, List<String>> dictionary = new HashMap<String, List<String>>();
 
 	public static Elements fetchText(String connectionUrl) throws IOException {
 		Document document = Jsoup.connect(connectionUrl).get();			  
@@ -54,19 +58,25 @@ public class Kmeans {
 		}			
 	}
 
-	public static List<String> normalizeText(StringTokenizer stHtml) {
-		List<String> cleanTokens = new ArrayList<>();
+	public static List<String> normalizeText(String webPage) throws IOException {
+		//List<String> cleanTokens = new ArrayList<>();
 		minTokenSize = 6;
 		maxTokenSize = 15;
+		
 		//converting the words to lowercase and filtering out words with length less than 6
-		//filtering out stopwords	
+		//filtering out stopwords
+		paragraphs = fetchText(webPage);
+		stringHtml = cleanText(paragraphs);
+		stHtml = tokenizeText(stringHtml);
+		System.out.println(stHtml);
 
 		while (stHtml.hasMoreTokens()) {  
 			String cleanToken =  stHtml.nextToken().toLowerCase();		
 			if(!(cleanToken.length() <= minTokenSize || stopWords.contains(cleanToken)  || cleanToken.length() > maxTokenSize) ) {
 				cleanTokens.add(cleanToken.trim());
 			}			
-		}       
+		} 
+		System.out.println(cleanTokens) ;   
 		return cleanTokens;
 	}	
 
@@ -75,19 +85,21 @@ public class Kmeans {
 		List<Integer> lengthOfDocs = new ArrayList<>();	
 		for (String webPage : webPageList) {
 			System.out.println(webPage);
-			paragraphs = fetchText(webPage);
-			stringHtml = cleanText(paragraphs);
-			stHtml = tokenizeText(stringHtml);
-			List<String> cleanTokens = normalizeText(stHtml);
-			System.out.println((cleanTokens).toString());						
+			cleanTokens = normalizeText(webPage);
 			mergeWords.addAll((cleanTokens));		
-			lengthOfDocs.add(cleanTokens.size());					
+			lengthOfDocs.add(cleanTokens.size());
+			dictionary.put(webPage,cleanTokens);	
 		}		
 		System.out.println(mergeWords.toString());
 		System.out.println(lengthOfDocs.toString());
 		return mergeWords;
 
 	}
+//	    w1 w2 w3
+//	d1 10 0 11
+//	d2 5 7 0
+//	d3 0 1 10
+	
 
 	public static double[][] vectorizeDocuments(List<String> mergeWords, String[] webPageList) throws IOException {		
 		unique = new HashSet<String>(mergeWords);
@@ -96,15 +108,11 @@ public class Kmeans {
 		double[][] wordMatrix = new double[nRow][nCol];
 		int j = 0;
 		for (String word : unique) {
-			List<String> doc = new ArrayList<>();
 			int i=0;
-			for (String webPage : webPageList) {
-				paragraphs = fetchText(webPage);
-				stringHtml = cleanText(paragraphs);
-				stHtml = tokenizeText(stringHtml);
-				doc = normalizeText(stHtml);
-				//System.out.println(word + ": " + Collections.frequency(doc, word));
-				wordMatrix[i][j] = Collections.frequency(doc, word);
+			for (String webPage : dictionary.keySet()) {
+				List<String> values = dictionary.get(webPage);
+				System.out.println(word + ": " + Collections.frequency(values, word));
+				wordMatrix[i][j] = Collections.frequency(values, word);
 				i++;
 			}											
 			j++;
@@ -151,7 +159,7 @@ public class Kmeans {
 	  }
 	
 	public static double[] sumOfCols(double[][] arr) {
-		  double sum[] = new double[10];	  
+		  double sum[] = new double[unique.size()];	  
 		  for (int i = 0; i < arr.length; i++){
 		        for (int j = 0; j < arr[i].length; j++){
 		        	sum[j] += arr[i][j];  
@@ -159,11 +167,21 @@ public class Kmeans {
 		    }
 		return sum;
 	}
+	
+	public static double[] sumOfCols( List<double[]> arr) {
+		  double sum[] = new double[unique.size()];	
+		  for (double[] element : arr) {
+			  for (int j = 0; j < element.length; j++){
+		        	sum[j] += element[j];  
+		        }			  
+		  }
+		  
+		return sum;
+	}
 		  
 	  public static double[] meanOfVectors(double [] arr, int count) {
-		  double mean[] = new double[10];	  
-		  for (int i = 0; i < arr.length; i++){
-		        
+		  double mean[] = new double[unique.size()];	  
+		  for (int i = 0; i < arr.length; i++){		        
 		        	mean[i] = arr[i]/count;  
 		        }
 		    
@@ -187,98 +205,116 @@ public class Kmeans {
 			 System.out.println(checkConverge_0);
 			
 			 while (checkConverge_0 == false & checkConverge_1 == false & checkConverge_2 == false ) {
-			 double[][] eclidianMatrix = new double[10][unique.size()];	  
-			  for (int i = 0; i< 10; i++) {
-				  double[] currentData = wordMatrix[i];
-				  double euclidianDistance1 =  calculateEuclidian(centroid_0, currentData);
-				  double euclidianDistance2 =  calculateEuclidian(centroid_1, currentData);
-				  double euclidianDistance3 =  calculateEuclidian(centroid_2, currentData);
-				  eclidianMatrix[i][0] = euclidianDistance1;
-				  eclidianMatrix[i][1] = euclidianDistance2;
-				  eclidianMatrix[i][2] = euclidianDistance3;
-			  }
-			  System.out.println(Arrays.deepToString(eclidianMatrix));
-			  System.out.println("cluster assignments for each data point for this iteration...");
-			  System.out.println(Arrays.toString(Junk.minRowIndex(eclidianMatrix)));
-			  double[] clusterArray = Junk.minRowIndex(eclidianMatrix);
-			  System.out.println("Calculating number of data points in each cluster...");
-			  
-			  int count_0 = 0;
-			  int count_1 = 0;	
-			  int count_2 = 0;
-			  
-			  for (int j=0; j <clusterArray.length;j++) {
-				  if (clusterArray[j]== 0.0) {
-					  count_0++;
-				  }else if (clusterArray[j]== 1.0){
-					  count_1++; 
-				  }	else {
-					  count_2++; 
-				  }
-			  }
-			  System.out.println(count_0);
-			  System.out.println(count_1);
-			  
-			  double[][] tmpCluster_0 = new double[10][unique.size()];
-			  double[][] tmpCluster_1 = new double[10][unique.size()];
-			  double[][] tmpCluster_2 = new double[10][unique.size()];
-			  
-			  System.out.println("Grouping Clusters...");
-			  //double[] sumOfCoordinates = new double[2];
-			  int x = 0;
-			  for (int k = 0; k < clusterArray.length; k++) {		  
-				  if (clusterArray[k] == 0.0) {
-					  tmpCluster_0[x] = wordMatrix[k];	
-					  x++;
-				  }else if (clusterArray[k] == 1.0) {
-					  tmpCluster_1[x] = wordMatrix[k]; 
-					  x++;
-				  }	else {
-					  tmpCluster_2[x] = wordMatrix[k];
-					  
-				  }
-			  }	  
-			  System.out.println(Arrays.deepToString(tmpCluster_0));  
-			  System.out.println(Arrays.deepToString(tmpCluster_1));
-			  System.out.println(Arrays.deepToString(tmpCluster_2));
-			  
-			  System.out.println("Calculating sum of cooordinates...");	  
-			  double[] sumOfCoordinates_0 = sumOfCols(tmpCluster_0);
-			  double[] sumOfCoordinates_1 = sumOfCols(tmpCluster_1);
-			  double[] sumOfCoordinates_2 = sumOfCols(tmpCluster_2);
-			  
-			  System.out.println(Arrays.toString(sumOfCoordinates_0));
-			  System.out.println(Arrays.toString(sumOfCoordinates_1));
-			  System.out.println(Arrays.toString(sumOfCoordinates_2));
-			  
-			  System.out.println("Calculating new centroid...");
-			  
-			  double[] meanOfCoordinates_0 = meanOfVectors(sumOfCoordinates_0, count_0);
-			  double[] meanOfCoordinates_1 = meanOfVectors(sumOfCoordinates_1, count_1);
-			  double[] meanOfCoordinates_2 = meanOfVectors(sumOfCoordinates_2, count_2);
-			  
-			  System.out.println(Arrays.toString(meanOfCoordinates_0));
-			  System.out.println(Arrays.toString(meanOfCoordinates_1));
-			  System.out.println(Arrays.toString(meanOfCoordinates_2));
-			  
-			  newCentroid_0 = meanOfCoordinates_0;
-			  newCentroid_1 = meanOfCoordinates_1;
-			  newCentroid_2 = meanOfCoordinates_2;
-			  
-			  checkConverge_0 = hasConverged(newCentroid_0, centroid_0);
-			  checkConverge_1 = hasConverged(newCentroid_1, centroid_1);
-			  checkConverge_2 = hasConverged(newCentroid_2, centroid_2);
-			  
-			  System.out.println(hasConverged(newCentroid_0, centroid_0));
-			  System.out.println(hasConverged(newCentroid_1, centroid_1));
-			  System.out.println(hasConverged(newCentroid_2, centroid_2));
-			  
-			  centroid_0 = newCentroid_0;
-			  centroid_1 = newCentroid_1;
-			  centroid_2 = newCentroid_2;
-			  
+				 double[][] eclidianMatrix = new double[10][3];	  
+				 for (int i = 0; i< 10; i++) {
+					 double[] currentData = wordMatrix[i];
+					 double euclidianDistance1 =  calculateEuclidian(centroid_0, currentData);
+					 double euclidianDistance2 =  calculateEuclidian(centroid_1, currentData);
+					 double euclidianDistance3 =  calculateEuclidian(centroid_2, currentData);
+					 
+					 eclidianMatrix[i][0] = euclidianDistance1;
+					 eclidianMatrix[i][1] = euclidianDistance2;
+					 eclidianMatrix[i][2] = euclidianDistance3;
+				 }
+				 System.out.println(Arrays.deepToString(eclidianMatrix));
+				 System.out.println("cluster assignments for each data point for this iteration...");
+				 
+				 double[] clusterArray = minRowIndex(eclidianMatrix);
+				 System.out.println(clusterArray);
+				 System.out.println("Calculating number of data points in each cluster...");
+
+				 int count_0 = 0;
+				 int count_1 = 0;	
+				 int count_2 = 0;
+
+				 for (int j=0; j <clusterArray.length;j++) {
+					 if (clusterArray[j]== 0.0) {
+						 count_0++;
+					 }else if (clusterArray[j]== 1.0){
+						 count_1++; 
+					 }	else {
+						 count_2++; 
+					 }
+				 }
+				 System.out.println(count_0);
+				 System.out.println(count_1);
+
+//				 double[][] tmpCluster_0 = new double[10][unique.size()];
+//				 double[][] tmpCluster_1 = new double[10][unique.size()];
+//				 double[][] tmpCluster_2 = new double[10][unique.size()];
+				 
+				 List<double[]> tmpCluster_0 = new ArrayList<double[]>();
+				 List<double[]> tmpCluster_1 = new ArrayList<double[]>();
+				 List<double[]> tmpCluster_2 = new ArrayList<double[]>();
+
+				 System.out.println("Grouping Clusters...");
+				 //double[] sumOfCoordinates = new double[2];
+				 int x = 0;
+				 for (int k = 0; k < clusterArray.length; k++) {		  
+					 if (clusterArray[k] == 0.0) {
+						 tmpCluster_0.add(wordMatrix[k]);
+						 count_0++;
+						 x++;
+					 }else if (clusterArray[k] == 1.0) {
+						 tmpCluster_1.add(wordMatrix[k]); 
+						 count_1++; 
+						 x++;
+					 }	else {
+						 tmpCluster_2.add(wordMatrix[k]);
+						 count_2++; 
+						 x++;
+
+					 }
+				 }	  
+//				 System.out.println(Arrays.deepToString(tmpCluster_0));  
+//				 System.out.println(Arrays.deepToString(tmpCluster_1));
+//				 System.out.println(Arrays.deepToString(tmpCluster_2));
+				 
+				 System.out.println(tmpCluster_0);  
+				 System.out.println(tmpCluster_1);
+				 System.out.println(tmpCluster_2);
+
+				 System.out.println("Calculating sum of cooordinates...");	  
+//				 double[] sumOfCoordinates_0 = sumOfCols(tmpCluster_0);
+//				 double[] sumOfCoordinates_1 = sumOfCols(tmpCluster_1);
+//				 double[] sumOfCoordinates_2 = sumOfCols(tmpCluster_2);
+
+				 double[] sumOfCoordinates_0 = sumOfCols(tmpCluster_0);
+				 double[] sumOfCoordinates_1 = sumOfCols(tmpCluster_1);
+				 double[] sumOfCoordinates_2 = sumOfCols(tmpCluster_2);
+				 
+				 System.out.println(Arrays.toString(sumOfCoordinates_0));
+				 System.out.println(Arrays.toString(sumOfCoordinates_1));
+				 System.out.println(Arrays.toString(sumOfCoordinates_2));
+
+				 System.out.println("Calculating new centroid...");
+
+				 double[] meanOfCoordinates_0 = meanOfVectors(sumOfCoordinates_0, count_0);
+				 double[] meanOfCoordinates_1 = meanOfVectors(sumOfCoordinates_1, count_1);
+				 double[] meanOfCoordinates_2 = meanOfVectors(sumOfCoordinates_2, count_2);
+
+				 System.out.println(Arrays.toString(meanOfCoordinates_0));
+				 System.out.println(Arrays.toString(meanOfCoordinates_1));
+				 System.out.println(Arrays.toString(meanOfCoordinates_2));
+
+				 newCentroid_0 = meanOfCoordinates_0;
+				 newCentroid_1 = meanOfCoordinates_1;
+				 newCentroid_2 = meanOfCoordinates_2;
+
+				 checkConverge_0 = hasConverged(newCentroid_0, centroid_0);
+				 checkConverge_1 = hasConverged(newCentroid_1, centroid_1);
+				 checkConverge_2 = hasConverged(newCentroid_2, centroid_2);
+
+				 System.out.println(checkConverge_0);
+				 System.out.println(checkConverge_1);
+				 System.out.println(checkConverge_2);
+
+				 centroid_0 = newCentroid_0;
+				 centroid_1 = newCentroid_1;
+				 centroid_2 = newCentroid_2;
+
 			 }  
-			 
+
 			 
 		  }
 
