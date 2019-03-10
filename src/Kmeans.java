@@ -95,10 +95,7 @@ public class Kmeans {
 		return mergeWords;
 
 	}
-//	    w1 w2 w3
-//	d1 10 0 11
-//	d2 5 7 0
-//	d3 0 1 10
+
 	
 
 	public static double[][] vectorizeDocuments(List<String> mergeWords, String[] webPageList) throws IOException {		
@@ -202,7 +199,7 @@ public class Kmeans {
 			 boolean checkConverge_0 = hasConverged(newCentroid_0,centroid_0);
 			 boolean checkConverge_1 = hasConverged(newCentroid_1,centroid_1);
 			 boolean checkConverge_2 = hasConverged(newCentroid_2,centroid_2);
-			 System.out.println(checkConverge_0);
+			 
 			
 			 while (checkConverge_0 == false & checkConverge_1 == false & checkConverge_2 == false ) {
 				 double[][] eclidianMatrix = new double[10][3];	  
@@ -227,15 +224,15 @@ public class Kmeans {
 				 int count_1 = 0;	
 				 int count_2 = 0;
 
-				 for (int j=0; j <clusterArray.length;j++) {
-					 if (clusterArray[j]== 0.0) {
-						 count_0++;
-					 }else if (clusterArray[j]== 1.0){
-						 count_1++; 
-					 }	else {
-						 count_2++; 
-					 }
-				 }
+//				 for (int j=0; j <clusterArray.length;j++) {
+//					 if (clusterArray[j]== 0.0) {
+//						 count_0++;
+//					 }else if (clusterArray[j]== 1.0){
+//						 count_1++; 
+//					 }	else {
+//						 count_2++; 
+//					 }
+//				 }
 				 System.out.println(count_0);
 				 System.out.println(count_1);
 
@@ -270,9 +267,9 @@ public class Kmeans {
 //				 System.out.println(Arrays.deepToString(tmpCluster_1));
 //				 System.out.println(Arrays.deepToString(tmpCluster_2));
 				 
-				 System.out.println(tmpCluster_0);  
-				 System.out.println(tmpCluster_1);
-				 System.out.println(tmpCluster_2);
+				 System.out.println(tmpCluster_0.toString());  
+				 System.out.println(tmpCluster_1.toString());
+				 System.out.println(tmpCluster_2.toString());
 
 				 System.out.println("Calculating sum of cooordinates...");	  
 //				 double[] sumOfCoordinates_0 = sumOfCols(tmpCluster_0);
