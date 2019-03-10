@@ -23,6 +23,7 @@ public class Kmeans {
 	private static String stringHtml;
 	private static List<String> stopWords = new ArrayList<>();
 	private static int minTokenSize;
+	private static int maxTokenSize;
 	private static Set<String> unique = new HashSet<String>();
 
 	public static Elements fetchText(String connectionUrl) throws IOException {
@@ -56,12 +57,13 @@ public class Kmeans {
 	public static List<String> normalizeText(StringTokenizer stHtml) {
 		List<String> cleanTokens = new ArrayList<>();
 		minTokenSize = 6;
+		maxTokenSize = 15;
 		//converting the words to lowercase and filtering out words with length less than 6
 		//filtering out stopwords	
 
 		while (stHtml.hasMoreTokens()) {  
 			String cleanToken =  stHtml.nextToken().toLowerCase();		
-			if(!(cleanToken.length() <= minTokenSize || stopWords.contains(cleanToken)) ) {
+			if(!(cleanToken.length() <= minTokenSize || stopWords.contains(cleanToken)  || cleanToken.length() > maxTokenSize) ) {
 				cleanTokens.add(cleanToken.trim());
 			}			
 		}       
@@ -87,11 +89,11 @@ public class Kmeans {
 
 	}
 
-	public static int[][] vectorizeDocuments(List<String> mergeWords, String[] webPageList) throws IOException {		
+	public static double[][] vectorizeDocuments(List<String> mergeWords, String[] webPageList) throws IOException {		
 		unique = new HashSet<String>(mergeWords);
-		int nRow = 2;
+		int nRow = 10;
 		int nCol = unique.size();
-		int[][] wordMatrix = new int[nRow][nCol];
+		double[][] wordMatrix = new double[nRow][nCol];
 		int j = 0;
 		for (String word : unique) {
 			List<String> doc = new ArrayList<>();
@@ -101,9 +103,8 @@ public class Kmeans {
 				stringHtml = cleanText(paragraphs);
 				stHtml = tokenizeText(stringHtml);
 				doc = normalizeText(stHtml);
-				System.out.println(word + ": " + Collections.frequency(doc, word));
+				//System.out.println(word + ": " + Collections.frequency(doc, word));
 				wordMatrix[i][j] = Collections.frequency(doc, word);
-				//System.out.println(wordMatrix[i][j]);
 				i++;
 			}											
 			j++;
@@ -131,33 +132,177 @@ public class Kmeans {
 		return checkConverge;
 	}
 
-	public static double[] findMinInCol(double[][] arr) {
-
-		double[] minVector = new double[unique.size()];
-
-		for (int i = 0; i < arr.length; i++) {
-			double min = arr[0][i];
-			for (int j = 0; j < arr[0].length; j++) {
-				if (arr[j][i] < min) {
-					min = arr[j][i];
-				}
-			}
-			minVector[i] = min;
-		}
-		return minVector;
+	public static double[] minRowIndex (double[][] n) {
+	    double[] result = new double[n.length];
+	    double[] resultIndex = new double[n.length];
+	    for (int i = 0; i < n.length; i++) {
+	      double min = n[i][0];
+	      int minIndex = 0;
+	      for (int j = 0; j < n[0].length; j++) {
+	        if (n[i][j] < min) {
+	          min = n[i][j];
+	          minIndex = j;         
+	        }
+	      }    
+	      result[i] = min;
+	      resultIndex[i] = minIndex;
+	    }
+	    return resultIndex;
+	  }
+	
+	public static double[] sumOfCols(double[][] arr) {
+		  double sum[] = new double[10];	  
+		  for (int i = 0; i < arr.length; i++){
+		        for (int j = 0; j < arr[i].length; j++){
+		        	sum[j] += arr[i][j];  
+		        }
+		    }
+		return sum;
 	}
+		  
+	  public static double[] meanOfVectors(double [] arr, int count) {
+		  double mean[] = new double[10];	  
+		  for (int i = 0; i < arr.length; i++){
+		        
+		        	mean[i] = arr[i]/count;  
+		        }
+		    
+		return mean;
+	} 
+	  
+	  public static void calculateKmeans(double[][] wordMatrix) {
+			 
+			 double[] centroid_0 = wordMatrix[0];
+			 double[] centroid_1 = wordMatrix[1];
+			 double[] centroid_2 = wordMatrix[2];
+			 
+			 double[] newCentroid_0 = new double[unique.size()];
+			 double[] newCentroid_1 = new double[unique.size()];
+			 double[] newCentroid_2 = new double[unique.size()];
+			 
+			 
+			 boolean checkConverge_0 = hasConverged(newCentroid_0,centroid_0);
+			 boolean checkConverge_1 = hasConverged(newCentroid_1,centroid_1);
+			 boolean checkConverge_2 = hasConverged(newCentroid_2,centroid_2);
+			 System.out.println(checkConverge_0);
+			
+			 while (checkConverge_0 == false & checkConverge_1 == false & checkConverge_2 == false ) {
+			 double[][] eclidianMatrix = new double[10][unique.size()];	  
+			  for (int i = 0; i< 10; i++) {
+				  double[] currentData = wordMatrix[i];
+				  double euclidianDistance1 =  calculateEuclidian(centroid_0, currentData);
+				  double euclidianDistance2 =  calculateEuclidian(centroid_1, currentData);
+				  double euclidianDistance3 =  calculateEuclidian(centroid_2, currentData);
+				  eclidianMatrix[i][0] = euclidianDistance1;
+				  eclidianMatrix[i][1] = euclidianDistance2;
+				  eclidianMatrix[i][2] = euclidianDistance3;
+			  }
+			  System.out.println(Arrays.deepToString(eclidianMatrix));
+			  System.out.println("cluster assignments for each data point for this iteration...");
+			  System.out.println(Arrays.toString(Junk.minRowIndex(eclidianMatrix)));
+			  double[] clusterArray = Junk.minRowIndex(eclidianMatrix);
+			  System.out.println("Calculating number of data points in each cluster...");
+			  
+			  int count_0 = 0;
+			  int count_1 = 0;	
+			  int count_2 = 0;
+			  
+			  for (int j=0; j <clusterArray.length;j++) {
+				  if (clusterArray[j]== 0.0) {
+					  count_0++;
+				  }else if (clusterArray[j]== 1.0){
+					  count_1++; 
+				  }	else {
+					  count_2++; 
+				  }
+			  }
+			  System.out.println(count_0);
+			  System.out.println(count_1);
+			  
+			  double[][] tmpCluster_0 = new double[10][unique.size()];
+			  double[][] tmpCluster_1 = new double[10][unique.size()];
+			  double[][] tmpCluster_2 = new double[10][unique.size()];
+			  
+			  System.out.println("Grouping Clusters...");
+			  //double[] sumOfCoordinates = new double[2];
+			  int x = 0;
+			  for (int k = 0; k < clusterArray.length; k++) {		  
+				  if (clusterArray[k] == 0.0) {
+					  tmpCluster_0[x] = wordMatrix[k];	
+					  x++;
+				  }else if (clusterArray[k] == 1.0) {
+					  tmpCluster_1[x] = wordMatrix[k]; 
+					  x++;
+				  }	else {
+					  tmpCluster_2[x] = wordMatrix[k];
+					  
+				  }
+			  }	  
+			  System.out.println(Arrays.deepToString(tmpCluster_0));  
+			  System.out.println(Arrays.deepToString(tmpCluster_1));
+			  System.out.println(Arrays.deepToString(tmpCluster_2));
+			  
+			  System.out.println("Calculating sum of cooordinates...");	  
+			  double[] sumOfCoordinates_0 = sumOfCols(tmpCluster_0);
+			  double[] sumOfCoordinates_1 = sumOfCols(tmpCluster_1);
+			  double[] sumOfCoordinates_2 = sumOfCols(tmpCluster_2);
+			  
+			  System.out.println(Arrays.toString(sumOfCoordinates_0));
+			  System.out.println(Arrays.toString(sumOfCoordinates_1));
+			  System.out.println(Arrays.toString(sumOfCoordinates_2));
+			  
+			  System.out.println("Calculating new centroid...");
+			  
+			  double[] meanOfCoordinates_0 = meanOfVectors(sumOfCoordinates_0, count_0);
+			  double[] meanOfCoordinates_1 = meanOfVectors(sumOfCoordinates_1, count_1);
+			  double[] meanOfCoordinates_2 = meanOfVectors(sumOfCoordinates_2, count_2);
+			  
+			  System.out.println(Arrays.toString(meanOfCoordinates_0));
+			  System.out.println(Arrays.toString(meanOfCoordinates_1));
+			  System.out.println(Arrays.toString(meanOfCoordinates_2));
+			  
+			  newCentroid_0 = meanOfCoordinates_0;
+			  newCentroid_1 = meanOfCoordinates_1;
+			  newCentroid_2 = meanOfCoordinates_2;
+			  
+			  checkConverge_0 = hasConverged(newCentroid_0, centroid_0);
+			  checkConverge_1 = hasConverged(newCentroid_1, centroid_1);
+			  checkConverge_2 = hasConverged(newCentroid_2, centroid_2);
+			  
+			  System.out.println(hasConverged(newCentroid_0, centroid_0));
+			  System.out.println(hasConverged(newCentroid_1, centroid_1));
+			  System.out.println(hasConverged(newCentroid_2, centroid_2));
+			  
+			  centroid_0 = newCentroid_0;
+			  centroid_1 = newCentroid_1;
+			  centroid_2 = newCentroid_2;
+			  
+			 }  
+			 
+			 
+		  }
 
 
 	
 	public static void main(String[] args) throws IOException {
 		populateStopWords(stopWords);
-		String[] webPageList = new String[2];
-		webPageList[0] = "http://www.cs.cmu.edu/~ninamf/";
-		webPageList[1] = "http://www.cs.cmu.edu/~awm/biography.html";
+		String[] webPageList = new String[10];
+		webPageList[0] = "https://www.csd.cs.cmu.edu/people/faculty/umut-acar";
+		webPageList[1] = "https://www.archive.ece.cmu.edu/~ganger/";
+		webPageList[2] = "http://www.cs.cmu.edu/~gibbons/";
+		webPageList[3] = "http://www.cs.cmu.edu/~garth/";
+		webPageList[4] = "http://www.cs.cmu.edu/~ebrun/";
+		webPageList[5] = "http://www.rr.cs.cmu.edu/";
+		webPageList[6] = "https://homes.cs.washington.edu/~nasmith/";
+		webPageList[7] = "http://www.stat.cmu.edu/~jiashun/";
+		webPageList[8] = "http://www.stat.cmu.edu/~cshalizi/";
+		webPageList[9] = "http://www.stat.cmu.edu/~pfreeman/";
+		
+		
 		List<String> mergeWords = mergeDocuments(webPageList);
 		System.out.println(mergeWords.size());
-		int[][] wordMatrix = vectorizeDocuments(mergeWords, webPageList);
-		//calculateKmeans(wordMatrix);
+		double[][] wordMatrix = vectorizeDocuments(mergeWords, webPageList);
+		calculateKmeans(wordMatrix);
 
 	}
 
