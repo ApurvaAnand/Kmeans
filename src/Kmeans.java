@@ -26,7 +26,6 @@ public class Kmeans {
 	private static int minTokenSize;
 	private static int maxTokenSize;
 	private static Set<String> unique = new HashSet<String>();
-	//private static List<String> cleanTokens = new ArrayList<>(); 
 	private static Map<String, List<String>> dictionary = new HashMap<String, List<String>>();
 
 	public static Elements fetchText(String connectionUrl) throws IOException {
@@ -155,17 +154,22 @@ public class Kmeans {
 		return euclidianDistance;
 	}
 
-	public static boolean hasConverged(double[] previousCentroid, double[] currentCentroid) {
+	public static boolean hasConverged(double[] previousCentroid, double[] currentCentroid, boolean cosine) {
 		boolean checkConverge = false;
-		double threshold = 0.0000001;
-		//double euclidianDistance = calculateEuclidian(previousCentroid , currentCentroid);
-		double euclidianDistance = calculateCosineDist(previousCentroid , currentCentroid);
-		System.out.println(euclidianDistance);
+		double threshold = 0.00000000000001;
+		double euclidianDistance = 0;
+		
+		if (cosine) {
+		euclidianDistance = calculateCosineDist(previousCentroid , currentCentroid);
+		} else {
+			 euclidianDistance = calculateEuclidian(previousCentroid , currentCentroid);
+		}
 		if (euclidianDistance <= threshold) {
 			checkConverge = true;
 		}						
 		return checkConverge;
 	}
+	
 
 	public static double[] minRowIndex (double[][] n) {
 	    double[] result = new double[n.length];
@@ -244,24 +248,24 @@ public class Kmeans {
 	  }
 	  public static void calculateKmeans(double[][] wordMatrix) {
 			 
-//			 double[] centroid_0 = wordMatrix[0];
-//			 double[] centroid_1 = wordMatrix[5];
-//			 double[] centroid_2 = wordMatrix[8];
+			 double[] centroid_0 = wordMatrix[0];
+			 double[] centroid_1 = wordMatrix[5];
+			 double[] centroid_2 = wordMatrix[8];
 //			 
-		  	 double[] centroid_0 = generateRandom(unique.size());
-		  	 double[] centroid_1 = generateRandom(unique.size());
-		  	 double[] centroid_2 = generateRandom(unique.size());
-//		  
+//		  	 double[] centroid_0 = generateRandom(unique.size());
+//		  	 double[] centroid_1 = generateRandom(unique.size());
+//		  	 double[] centroid_2 = generateRandom(unique.size());
+////		  
 		  
 			 
 			 double[] newCentroid_0 = new double[unique.size()];
 			 double[] newCentroid_1 = new double[unique.size()];
 			 double[] newCentroid_2 = new double[unique.size()];
 			 
-			 
-			 boolean checkConverge_0 = hasConverged(newCentroid_0,centroid_0);
-			 boolean checkConverge_1 = hasConverged(newCentroid_1,centroid_1);
-			 boolean checkConverge_2 = hasConverged(newCentroid_2,centroid_2);
+			 boolean doCosine = true;
+			 boolean checkConverge_0 = hasConverged(newCentroid_0,centroid_0, doCosine);
+			 boolean checkConverge_1 = hasConverged(newCentroid_1,centroid_1, doCosine);
+			 boolean checkConverge_2 = hasConverged(newCentroid_2,centroid_2, doCosine);
 			 
 			 int nIteration = 0;
 			 System.out.println(checkConverge_0);
@@ -272,14 +276,18 @@ public class Kmeans {
 				 double[][] eclidianMatrix = new double[10][3];	  
 				 for (int i = 0; i< 10; i++) {
 					 double[] currentData = wordMatrix[i];
-//					 double euclidianDistance1 =  calculateEuclidian(centroid_0, currentData);
-//					 double euclidianDistance2 =  calculateEuclidian(centroid_1, currentData);
-//					 double euclidianDistance3 =  calculateEuclidian(centroid_2, currentData);
-					 
-					 double euclidianDistance1 =  calculateCosineDist(centroid_0, currentData);
-					 double euclidianDistance2 =  calculateCosineDist(centroid_1, currentData);
-					 double euclidianDistance3 =  calculateCosineDist(centroid_2, currentData);
-					 
+					 double euclidianDistance1 = 0;
+					 double euclidianDistance2 = 0;
+					 double euclidianDistance3 = 0;
+					 if (!doCosine) {
+						  euclidianDistance1 =  calculateEuclidian(centroid_0, currentData);
+						  euclidianDistance2 =  calculateEuclidian(centroid_1, currentData);
+						  euclidianDistance3 =  calculateEuclidian(centroid_2, currentData);
+					 } else {
+						  euclidianDistance1 =  calculateCosineDist(centroid_0, currentData);
+						  euclidianDistance2 =  calculateCosineDist(centroid_1, currentData);
+						  euclidianDistance3 =  calculateCosineDist(centroid_2, currentData);
+					 }
 					 
 					 
 					 eclidianMatrix[i][0] = euclidianDistance1;
@@ -376,9 +384,9 @@ public class Kmeans {
 				 newCentroid_1 = meanOfCoordinates_1;
 				 newCentroid_2 = meanOfCoordinates_2;
 
-				 checkConverge_0 = hasConverged(newCentroid_0, centroid_0);
-				 checkConverge_1 = hasConverged(newCentroid_1, centroid_1);
-				 checkConverge_2 = hasConverged(newCentroid_2, centroid_2);
+				 checkConverge_0 = hasConverged(newCentroid_0, centroid_0, doCosine);
+				 checkConverge_1 = hasConverged(newCentroid_1, centroid_1, doCosine);
+				 checkConverge_2 = hasConverged(newCentroid_2, centroid_2, doCosine);
 
 				 System.out.println(checkConverge_0);
 				 System.out.println(checkConverge_1);
